@@ -6,6 +6,7 @@ package mn.unitel.solution;/*
 
 import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.Cancellable;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
@@ -27,7 +28,7 @@ public class Init {
 
     void onStart(@Observes StartupEvent ev) {
         queue = new LinkedList<>();
-        c = Multi.createFrom().ticks().every(Duration.ofMillis(70)).onItem().invoke(this::send).subscribe().with(x -> {
+        c = Multi.createFrom().ticks().every(Duration.ofMillis(70)).onItem().call(this::send).subscribe().with(x -> {
         });
 
     }
@@ -38,7 +39,7 @@ public class Init {
 
     private static final Logger logger = Logger.getLogger("rasa");
 
-    void send() {
+    Uni<String> send() {
 
         if (!queue.isEmpty()) {
             long start = System.currentTimeMillis();
@@ -48,6 +49,8 @@ public class Init {
             rasaClient.send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
             logger.infov("total rasa answer duration = {0} queue size = {1}", System.currentTimeMillis() - start, size);
         }
+
+        return Uni.createFrom().nullItem();
 
     }
 
