@@ -38,7 +38,7 @@ public class Init {
 
         for (int i = 0; i < 10; i++) {
             if (!queue.isEmpty())
-                rasaClient.send(queue.poll());
+                System.out.println(rasaClient.send(queue.poll()));
         }
     }
 
