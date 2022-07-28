@@ -14,7 +14,5 @@ public class Filter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) {
-      System.out.println(context.getHeaders());
-      System.out.println(context.getUriInfo().getPathParameters());
     }
 }
