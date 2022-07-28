@@ -22,6 +22,6 @@ public class GreetingResource {
        DataStore dataStore = new DataStore(data,sha1,sha2);
         init.push(dataStore);
         System.out.println(data);
-        return "OK";
+        return "success";
     }
 }

@@ -26,7 +26,8 @@ public class Init {
 
     void onStart(@Observes StartupEvent ev) {
         queue = new LinkedList<>();
-        c = Multi.createFrom().ticks().every(Duration.ofMillis(70)).onItem().invoke(this::send).subscribe().with(System.out::println);
+        c = Multi.createFrom().ticks().every(Duration.ofMillis(70)).onItem().invoke(this::send).subscribe().with(x -> {
+        });
 
     }
 
