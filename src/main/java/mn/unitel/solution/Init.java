@@ -19,7 +19,7 @@ import java.util.Queue;
 @ApplicationScoped
 public class Init {
     public Cancellable c;
-    Queue<String> queue;
+    Queue<DataStore> queue;
     @Inject
     @RestClient
     RasaClient rasaClient;
@@ -30,15 +30,18 @@ public class Init {
 
     }
 
-    public void push(String x) {
+    public void push(DataStore x) {
         queue.add(x);
     }
 
     void send() {
 
         for (int i = 0; i < 10; i++) {
-            if (!queue.isEmpty())
-                System.out.println(rasaClient.send(queue.poll()));
+            if (!queue.isEmpty()){
+                DataStore dataStore = queue.poll();
+                System.out.println(rasaClient.send(dataStore.getValue(), dataStore.sha1 ,dataStore.sha256));
+            }
+
         }
     }
 
