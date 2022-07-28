@@ -26,7 +26,7 @@ public class Init {
 
     void onStart(@Observes StartupEvent ev) {
         queue = new LinkedList<>();
-        c = Multi.createFrom().ticks().every(Duration.ofMillis(10)).onItem().invoke(this::send).subscribe().with(System.out::println);
+        c = Multi.createFrom().ticks().every(Duration.ofMillis(70)).onItem().invoke(this::send).subscribe().with(System.out::println);
 
     }
 
@@ -36,13 +36,11 @@ public class Init {
 
     void send() {
 
-        for (int i = 0; i < 10; i++) {
-            if (!queue.isEmpty()){
-                DataStore dataStore = queue.poll();
-                System.out.println(rasaClient.send(dataStore.getValue(), dataStore.sha1 ,dataStore.sha256));
-            }
-
+        if (!queue.isEmpty()) {
+            DataStore dataStore = queue.poll();
+            System.out.println(rasaClient.send(dataStore.getValue(), dataStore.sha1, dataStore.sha256));
         }
+
     }
 
     public void startSendingRasa() {
