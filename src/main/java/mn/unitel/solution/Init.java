@@ -8,6 +8,7 @@ import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.subscription.Cancellable;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.jboss.logging.Logger;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
@@ -35,12 +36,16 @@ public class Init {
         queue.add(x);
     }
 
+    private static final Logger logger = Logger.getLogger("rasa");
+
     void send() {
 
         if (!queue.isEmpty()) {
-            System.out.println(queue.size());
+            long start = System.currentTimeMillis();
+            //System.out.println(queue.size());
             DataStore dataStore = queue.poll();
-            System.out.println(rasaClient.send(dataStore.getValue(), dataStore.sha1, dataStore.sha256));
+            rasaClient.send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
+            logger.infov("total rasa answer duration = {0} queue size = {1}", System.currentTimeMillis() - start, queue.size());
         }
 
     }
