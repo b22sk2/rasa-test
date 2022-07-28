@@ -38,6 +38,7 @@ public class Init {
     void send() {
 
         if (!queue.isEmpty()) {
+            System.out.println(queue.size());
             DataStore dataStore = queue.poll();
             System.out.println(rasaClient.send(dataStore.getValue(), dataStore.sha1, dataStore.sha256));
         }
