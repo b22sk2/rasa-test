@@ -46,7 +46,12 @@ public class Init {
             //System.out.println(queue.size());
             DataStore dataStore = queue.poll();
             int size = queue.size();
-            rasaClient.send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
+            try {
+                rasaClient.send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
+            } catch (Exception ex) {
+
+            }
+
             logger.infov("total rasa answer duration = {0} queue size = {1}", System.currentTimeMillis() - start, size);
         }
 
