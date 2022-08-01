@@ -28,8 +28,10 @@ public class Init {
 
     void onStart(@Observes StartupEvent ev) {
         queue = new LinkedList<>();
-        c = Multi.createFrom().ticks().every(Duration.ofMillis(10)).onItem().call(this::send).subscribe().with(x -> {
-        });
+       /* c = Multi.createFrom().ticks().every(Duration.ofMillis(10)).onItem().call(this::send).subscribe().with(x -> {
+        });*/
+
+        Cancellable c = Multi.createBy().repeating().uni(this::send).withDelay(Duration.ofMillis(10)).indefinitely().subscribe().with(System.out::println);
 
     }
 
@@ -39,7 +41,7 @@ public class Init {
 
     private static final Logger logger = Logger.getLogger("rasa");
 
-    Uni<String> send() {
+    Uni send() {
 
         if (!queue.isEmpty()) {
             long start = System.currentTimeMillis();
@@ -48,23 +50,20 @@ public class Init {
 
             DataStore dataStore = queue.poll();
             int size = queue.size();
+            logger.infov("total rasa answer size = {0}", size);
             try {
-                Uni.createFrom().item(dataStore).onItem().transform(x -> rasaClient.send(x.getValue(), x.sha1, x.sha256)).subscribe().with(System.out::println);
+                return rasaClient.send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
+                //Uni.createFrom().item(dataStore).onItem().transform(x -> rasaClient.send(x.getValue(), x.sha1, x.sha256)).subscribe().with(System.out::println);
             } catch (Exception ex) {
                 ex.printStackTrace();
+                return Uni.createFrom().nullItem();
             }
 
-            logger.infov("total rasa answer duration = {0} queue size = {1}", System.currentTimeMillis() - start, size);
+            // logger.infov("total rasa answer duration = {0} queue size = {1}", System.currentTimeMillis() - start, size);
         }
 
         return Uni.createFrom().nullItem();
-
     }
 
-    public void startSendingRasa() {
 
-    }
-
-    public void stopSendingRasa() {
-    }
 }

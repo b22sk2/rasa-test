@@ -18,7 +18,7 @@ public class GreetingResource {
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    public String wait(String data,@HeaderParam("X-Hub-Signature") String sha1 , @HeaderParam("X-Hub-Signature-256") String sha2) {
+    public String wait(String data,@Header("X-Hub-Signature") String sha1 , @HeaderParam("X-Hub-Signature-256") String sha2) {
        DataStore dataStore = new DataStore(data,sha1,sha2);
         init.push(dataStore);
         return "success";
