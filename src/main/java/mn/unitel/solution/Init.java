@@ -28,7 +28,7 @@ public class Init {
 
     void onStart(@Observes StartupEvent ev) {
         queue = new LinkedList<>();
-        c = Multi.createFrom().ticks().every(Duration.ofMillis(70)).onItem().call(this::send).subscribe().with(x -> {
+        c = Multi.createFrom().ticks().every(Duration.ofMillis(10)).onItem().call(this::send).subscribe().with(x -> {
         });
 
     }
@@ -44,12 +44,14 @@ public class Init {
         if (!queue.isEmpty()) {
             long start = System.currentTimeMillis();
             //System.out.println(queue.size());
+
+
             DataStore dataStore = queue.poll();
             int size = queue.size();
             try {
-                rasaClient.send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
+                Uni.createFrom().item(dataStore).onItem().invoke(x -> rasaClient.send(x.getValue(), x.sha1, x.sha256)).subscribe().with(System.out::println);
             } catch (Exception ex) {
-
+                ex.printStackTrace();
             }
 
             logger.infov("total rasa answer duration = {0} queue size = {1}", System.currentTimeMillis() - start, size);
