@@ -49,7 +49,7 @@ public class Init {
             DataStore dataStore = queue.poll();
             int size = queue.size();
             try {
-                Uni.createFrom().item(dataStore).onItem().invoke(x -> rasaClient.send(x.getValue(), x.sha1, x.sha256)).subscribe().with(System.out::println);
+                Uni.createFrom().item(dataStore).onItem().transform(x -> rasaClient.send(x.getValue(), x.sha1, x.sha256)).subscribe().with(System.out::println);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
