@@ -1,0 +1,39 @@
+<configuration>
+<pages>
+        <page id="442349245787583" name="unitel">
+            <access-token>EAAhcipyDxDMBACFQ18Dfv5TjimH8mxzAtT6LPIrvl6ZAoWFjYGFJo9qnGzIJZAPNtZBdEak7LZAw3Fzi183bJCcRybuI3qub8jbRIlg1khhsPZBB9iQ0uaBl0vicMTH4cKGljxDtmRYUQIQebMBYgE8n9jSnZA4WODzjVKWVZBpEyvIPpJQ1O7dBoFLpDAlZCnDKvtlAKvf2YQZDZD</access-token>
+            <maintenance-text></maintenance-text>
+            <maintenance-mode>off</maintenance-mode>
+            <operation>2</operation>
+            <url>http://10.21.68.25:5007/webhooks/rest/webhook</url>
+        </page>
+        <page id="146686400039" name="univision">
+            <access-token></access-token>
+            <maintenance-text></maintenance-text>
+            <maintenance-mode>off</maintenance-mode>
+            <operation>1</operation>
+            <url>http://10.21.68.25:5009/webhooks/rest/webhook</url>
+        </page>
+        <page id="1275157162502962" name="ger">
+            <access-token></access-token>
+            <maintenance-text></maintenance-text>
+            <maintenance-mode>off</maintenance-mode>
+            <operation>1</operation>
+            <url>http://10.21.68.25:5005/webhooks/rest/webhook</url>
+        </page>
+        <page id="657833644358715" name="looktv">
+            <access-token></access-token>
+            <maintenance-text></maintenance-text>
+            <maintenance-mode>off</maintenance-mode>
+            <operation>1</operation>
+            <url>http://10.21.68.25:5006/webhooks/rest/webhook</url>
+        </page>
+        <page id="106972872092049" name="ubot">
+            <access-token></access-token>
+            <maintenance-text></maintenance-text>
+            <maintenance-mode>off</maintenance-mode>
+            <operation>1</operation>
+            <url></url>
+        </page>
+</pages>
+</configuration>
