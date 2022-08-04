@@ -21,6 +21,12 @@ public class PageInfo {
     @XmlElement(name = "maintenance-mode")
     String maintenanceMode;
 
+    @Override
+    public String toString() {
+        return "PageInfo [accessToken=" + accessToken + ", id=" + id + ", maintenanceMode=" + maintenanceMode
+                + ", maintenanceText=" + maintenanceText + ", operation=" + operation + ", url=" + url + "]";
+    }
+
     public String getMaintenanceMode() {
         return maintenanceMode;
     }

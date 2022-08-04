@@ -90,8 +90,9 @@ public class Init {
             pagesInfo = new HashMap<>();
             httpClients = new HashMap<>();
             que.getPage().forEach(x->{pagesInfo.put(x.id,x);
+                System.out.println(x);
                 try {
-                    httpClients.put(x.id, RestClientBuilder.newBuilder().baseUri(new URI(x.url)).build(RasaClient.class));
+                    httpClients.put(x.id, RestClientBuilder.newBuilder().baseUri(URI.create(x.url)).build(RasaClient.class));
             } catch (Exception e) {
             }
                 
@@ -123,6 +124,7 @@ public class Init {
                 logger.info("maintenanceMode is off");
                 try {
                     logger.info("called rasaClient send");
+
                     return httpClients.get(dataStore.recipientId).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
                 } catch (Exception ex) {
                     ex.printStackTrace();
