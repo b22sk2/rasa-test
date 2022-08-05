@@ -14,10 +14,7 @@ import mn.unitel.solution.Client.RasaClient;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
-import org.w3c.dom.Document;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
