@@ -12,5 +12,5 @@ import javax.ws.rs.core.MediaType;
 public interface RasaClient {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    public Uni<String> send(String data, @RestHeader("X-Hub-Signature") String sha1, @RestHeader("X-Hub-Signature-256") String sha2);
+    public String send(String data, @RestHeader("X-Hub-Signature") String sha1, @RestHeader("X-Hub-Signature-256") String sha2);
 }

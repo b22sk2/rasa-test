@@ -39,7 +39,7 @@ import java.util.Queue;
 
 @ApplicationScoped
 public class Init {
-     Cancellable c;
+    Cancellable c;
     Queue<DataStore> queue;
     RasaClient unitelClient;
     RasaClient univisionClient;
@@ -49,37 +49,42 @@ public class Init {
     @Inject
     @RestClient
     Handover handover;
-  
+
 
     Pages pages;
-    PageInfo info ;
-    Map<String , PageInfo> pagesInfo;
+    PageInfo info;
+    Map<String, PageInfo> pagesInfo;
 
-    String sendMsg =  "{\n  \"sender\": \"%s\",\n  \"message\": \"%s\",\n  \"metadata\": \"\"\n}";
+    String sendMsg = "{\n  \"sender\": \"%s\",\n  \"message\": \"%s\",\n  \"metadata\": \"\"\n}";
     String handoverRequest = "{\n    \"recipient\": {\"id\": %s },\n    \"target_app_id\": \"371291917550\",\n    \"metadata\": \"Talk to an agent\"\n   }";
-    
+
     void onStart(@Observes StartupEvent ev) {
-        
-       queue = new LinkedList<>();
 
-    //    startSending();  
-       readConfiguration();
-       startSending();  
-       logger.info("read config");
+        queue = new LinkedList<>();
+
+        //    startSending();
+        readConfiguration();
+        startSending();
+        logger.info("read config");
 
     }
-    void startSending( ){
-      c=  Multi.createBy().repeating().uni(this::send).withDelay(Duration.ofMillis(1000)).indefinitely().subscribe().with(System.out::println);
+
+    void startSending() {
+        c = Multi.createBy().repeating().uni(this::send).withDelay(Duration.ofMillis(1000)).indefinitely().subscribe().with(System.out::println);
     }
-    void stopSending(String unitel){
+
+    void stopSending(String unitel) {
         c.cancel();
 
     }
+
     public void push(DataStore x) {
         queue.add(x);
     }
-    Map<String ,RasaClient> httpClients;
-    public Pages readConfiguration(){
+
+    Map<String, RasaClient> httpClients;
+
+    public Pages readConfiguration() {
 
         try {
             File file = new File("Config.xml");
@@ -89,17 +94,19 @@ public class Init {
             Pages que = (Pages) jaxbUnmarshaller.unmarshal(file);
             pagesInfo = new HashMap<>();
             httpClients = new HashMap<>();
-            que.getPage().forEach(x->{pagesInfo.put(x.id,x);
+            que.getPage().forEach(x -> {
+                pagesInfo.put(x.id, x);
                 System.out.println(x);
                 try {
                     httpClients.put(x.id, RestClientBuilder.newBuilder().baseUri(URI.create(x.url)).build(RasaClient.class));
-            } catch (Exception e) {
-            }
-                
-       
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+
             });
-           
-     
+
+
             return que;
         } catch (JAXBException e) {
             e.printStackTrace();
@@ -111,56 +118,59 @@ public class Init {
     private static final Logger logger = Logger.getLogger("rasa");
 
     Uni<String> send() {
-        logger.infov("queue size = {0}",queue.size());
+        logger.infov("queue size = {0}", queue.size());
         if (!queue.isEmpty()) {
 
             DataStore dataStore = queue.poll();
-            if(dataStore.getRecipientId() == null){return Uni.createFrom().nullItem();}
+            if (dataStore.getRecipientId() == null) {
+                return Uni.createFrom().nullItem();
+            }
             PageInfo pageInfo = pagesInfo.get(dataStore.getRecipientId());
-            if(pageInfo.maintenanceMode.equals("on")) {
+            if (pageInfo.maintenanceMode.equals("on")) {
                 logger.info("maintenanceMode is on");
-               return  handleMaintenanceMode(dataStore,pageInfo);
-            }else{
+                return handleMaintenanceMode(dataStore, pageInfo);
+            } else {
                 logger.info("maintenanceMode is off");
                 try {
                     logger.info("called rasaClient send");
-
-                    return httpClients.get(dataStore.recipientId).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
+                    logger.infov("{0}", httpClients.get(dataStore.recipientId).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256));
+                    return Uni.createFrom().nullItem();
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     logger.info("failed to call rasa client");
                     return Uni.createFrom().nullItem();
                 }
             }
-    
-            
+
+
         }
         return Uni.createFrom().nullItem();
     }
 
     private Uni<String> handleMaintenanceMode(DataStore dataStore, PageInfo pageInfo) {
-        if(pageInfo.operation.equals("1")){
+        if (pageInfo.operation.equals("1")) {
             handover.send(pageInfo.accessToken, String.format(handoverRequest, dataStore.senderId));
             httpClients.get(dataStore.recipientId).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
             logger.info("called handoverAPI & rasaClient");
-        }else{
+        } else {
             httpClients.get(dataStore.recipientId).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
             logger.info("called rasaClient");
         }
 
         return Uni.createFrom().nothing();
     }
-    public String changeMode(String id, String mode){
+
+    public String changeMode(String id, String mode) {
         pagesInfo.get(id).setMaintenanceMode(mode);
         return pagesInfo.get(id).getMaintenanceMode();
 
     }
-    public String check(String id){
-        
+
+    public String check(String id) {
+
         return pagesInfo.get(id).getMaintenanceMode();
 
     }
-    
-    
-   
+
+
 }
