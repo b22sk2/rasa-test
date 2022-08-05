@@ -5,7 +5,7 @@
             <maintenance-text></maintenance-text>
             <maintenance-mode>off</maintenance-mode>
             <operation>2</operation>
-            <url>http://10.21.68.25:5007/webhooks/rest/webhook</url>
+            <url>http://10.21.68.25:5007/webhooks/facebook/webhook</url>
         </page>
         <page id="146686400039" name="univision">
             <access-token></access-token>

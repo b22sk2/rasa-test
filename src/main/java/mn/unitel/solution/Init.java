@@ -38,11 +38,7 @@ import java.util.Queue;
 public class Init {
     Cancellable c;
     Queue<DataStore> queue;
-    RasaClient unitelClient;
-    RasaClient univisionClient;
-    RasaClient gerClient;
-    RasaClient lookTVClient;
-    RasaClient testClient;
+
     @Inject
     @RestClient
     Handover handover;
@@ -130,6 +126,7 @@ public class Init {
                 logger.info("maintenanceMode is off");
                 try {
                     logger.info("called rasaClient send");
+
                     logger.infov("{0}", httpClients.get(dataStore.recipientId).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256));
                     return Uni.createFrom().nullItem();
                 } catch (Exception ex) {
