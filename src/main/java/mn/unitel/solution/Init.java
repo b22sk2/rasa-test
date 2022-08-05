@@ -63,7 +63,7 @@ public class Init {
     }
 
     void startSending() {
-        c = Multi.createBy().repeating().uni(this::send).withDelay(Duration.ofMillis(1000)).indefinitely().subscribe().with(System.out::println);
+        c = Multi.createBy().repeating().uni(this::send).withDelay(Duration.ofMillis(10)).indefinitely().subscribe().with(System.out::println);
     }
 
     void stopSending(String unitel) {
