@@ -8,6 +8,7 @@ import org.jboss.resteasy.reactive.RestHeader;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
+@RegisterRestClient
 public interface RasaClient {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
