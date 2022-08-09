@@ -12,21 +12,21 @@
             <maintenance-text></maintenance-text>
             <maintenance-mode>off</maintenance-mode>
             <operation>1</operation>
-            <url>http://10.21.68.25:5009/webhooks/rest/webhook</url>
+            <url>http://10.21.68.25:5009/webhooks/facebook/webhook</url>
         </page>
         <page id="1275157162502962" name="ger">
             <access-token></access-token>
             <maintenance-text></maintenance-text>
             <maintenance-mode>off</maintenance-mode>
             <operation>1</operation>
-            <url>http://10.21.68.25:5005/webhooks/rest/webhook</url>
+            <url>http://10.21.68.25:5005/webhooks/facebook/webhook</url>
         </page>
         <page id="657833644358715" name="looktv">
             <access-token></access-token>
             <maintenance-text></maintenance-text>
             <maintenance-mode>off</maintenance-mode>
             <operation>1</operation>
-            <url>http://10.21.68.25:5006/webhooks/rest/webhook</url>
+            <url>http://10.21.68.25:5006/webhooks/facebook/webhook</url>
         </page>
         <page id="106972872092049" name="ubot">
             <access-token></access-token>
