@@ -131,10 +131,9 @@ public class Init {
                 try {
                     logger.info("called rasaClient send");
                     //client.newCall(new Request().newBuilder().build().url(dataStore.))
-                   PageInfo info= pagesInfo.get(dataStore.recipientId);
+                    PageInfo info = pagesInfo.get(dataStore.recipientId);
 
-                    logger.infov("{0}",  RestClientBuilder.newBuilder().baseUri(URI.create(info.url)).build(RasaClient.class).send(dataStore.getValue(),dataStore.sha1, dataStore.sha256));
-                    return Uni.createFrom().nullItem();
+                    return RestClientBuilder.newBuilder().baseUri(URI.create(info.url)).build(RasaClient.class).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     logger.info("failed to call rasa client");
