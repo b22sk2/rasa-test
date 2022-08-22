@@ -46,11 +46,22 @@ public class Init {
     OkHttpClient client;
     Pages pages;
     PageInfo info;
-    public Map<String, PageInfo> pagesInfo;
+    Map<String, PageInfo> pagesInfo;
+
+    public Map<String, PageInfo> getPagesInfo() {
+        return pagesInfo;
+    }
+
+    ;
+
+    public boolean getLoaded() {
+        return loaded;
+    }
 
     String sendMsg = "{\n  \"sender\": \"%s\",\n  \"message\": \"%s\",\n  \"metadata\": \"\"\n}";
     String handoverRequest = "{\n    \"recipient\": {\"id\": %s },\n    \"target_app_id\": \"371291917550\",\n    \"metadata\": \"Talk to an agent\"\n   }";
-    public  boolean loaded = false;
+     boolean loaded = false;
+
     void onStart(@Observes StartupEvent ev) {
         clientMap = new HashMap<>();
         client = new OkHttpClient().newBuilder().build();
@@ -58,8 +69,8 @@ public class Init {
 
         //    startSending();
         readConfiguration();
-        loaded=true;
-        startSending();
+        loaded = true;
+      //  startSending();
         logger.info("read config");
 
     }
