@@ -12,7 +12,6 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
 
-
 @Path("/webhooks/facebook/webhook")
 public class GreetingResource {
     // Config config;
@@ -25,12 +24,12 @@ public class GreetingResource {
         return init.check(id);
         // return "Hello RESTEasy";
     }
+
     Uni<String> send(DataStore dataStore) {
+
         PageInfo info = init.pagesInfo.get(dataStore.recipientId);
 
         return RestClientBuilder.newBuilder().baseUri(URI.create(info.url)).build(RasaClient.class).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
-
-
 
 
     }
@@ -38,19 +37,24 @@ public class GreetingResource {
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    public String wait(String data,@HeaderParam("X-Hub-Signature") String sha1 , @HeaderParam("X-Hub-Signature-256") String sha2) throws IOException {
-       DataStore dataStore = new DataStore(data,sha1,sha2);
-        Uni.createFrom().item(dataStore).onItem().call(x-> send(x)).subscribe().with(System.out::println);
-       // init.push(dataStore);
-       
+    public String wait(String data, @HeaderParam("X-Hub-Signature") String sha1, @HeaderParam("X-Hub-Signature-256") String sha2) throws IOException {
+        DataStore dataStore = new DataStore(data, sha1, sha2);
+        if (init.loaded)
+            Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).subscribe().with(System.out::println);
+        // init.push(dataStore);
+        else {
+            System.out.println("not loaded");
+        }
+
         return "success";
     }
+
     @PUT
-    public String changeMode(@QueryParam("id") String id, @QueryParam("mode") String mode){
+    public String changeMode(@QueryParam("id") String id, @QueryParam("mode") String mode) {
         String result = init.changeMode(id, mode);
         init.readConfiguration();
         return result;
     }
 
-    
+
 }
