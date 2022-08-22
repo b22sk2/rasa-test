@@ -27,7 +27,7 @@ public class GreetingResource {
 
     Uni<String> send(DataStore dataStore) {
 
-        PageInfo info = init.pagesInfo.get(dataStore.recipientId);
+        PageInfo info = init.getPagesInfo().get(dataStore.recipientId);
 
         return RestClientBuilder.newBuilder().baseUri(URI.create(info.url)).build(RasaClient.class).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
 
