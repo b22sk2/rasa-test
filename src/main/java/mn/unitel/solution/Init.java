@@ -11,6 +11,8 @@ import io.smallrye.mutiny.subscription.Cancellable;
 import mn.unitel.solution.Client.Handover;
 import mn.unitel.solution.Client.RasaClient;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
@@ -40,8 +42,8 @@ public class Init {
     @Inject
     @RestClient
     Handover handover;
-
-
+    Map<String, OkHttpClient> clientMap;
+    OkHttpClient client;
     Pages pages;
     PageInfo info;
     Map<String, PageInfo> pagesInfo;
@@ -50,7 +52,8 @@ public class Init {
     String handoverRequest = "{\n    \"recipient\": {\"id\": %s },\n    \"target_app_id\": \"371291917550\",\n    \"metadata\": \"Talk to an agent\"\n   }";
 
     void onStart(@Observes StartupEvent ev) {
-
+        clientMap = new HashMap<>();
+        client = new OkHttpClient().newBuilder().build();
         queue = new LinkedList<>();
 
         //    startSending();
@@ -62,7 +65,7 @@ public class Init {
 
     void startSending() {
         Multi.createFrom().ticks().every(Duration.ofMillis(10)).call(x -> this.send()).onFailure().recoverWithCompletion().subscribe().with(System.out::println);
-       // c = Multi.createBy().repeating().uni(this::send).withDelay(Duration.ofMillis(10)).indefinitely().subscribe().with(System.out::println);
+        // c = Multi.createBy().repeating().uni(this::send).withDelay(Duration.ofMillis(10)).indefinitely().subscribe().with(System.out::println);
     }
 
     void stopSending(String unitel) {
@@ -90,6 +93,7 @@ public class Init {
                 pagesInfo.put(x.id, x);
                 System.out.println(x);
                 try {
+
                     httpClients.put(x.id, RestClientBuilder.newBuilder().baseUri(URI.create(x.url)).build(RasaClient.class));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -111,6 +115,7 @@ public class Init {
 
     Uni<String> send() {
         logger.infov("queue size = {0}", queue.size());
+
         if (!queue.isEmpty()) {
 
             DataStore dataStore = queue.poll();
@@ -125,8 +130,10 @@ public class Init {
                 logger.info("maintenanceMode is off");
                 try {
                     logger.info("called rasaClient send");
+                    //client.newCall(new Request().newBuilder().build().url(dataStore.))
+                   PageInfo info= pagesInfo.get(dataStore.recipientId);
 
-                    logger.infov("{0}", httpClients.get(dataStore.recipientId).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256));
+                    logger.infov("{0}",  RestClientBuilder.newBuilder().baseUri(URI.create(info.url)).build(RasaClient.class).send(dataStore.getValue(),dataStore.sha1, dataStore.sha256));
                     return Uni.createFrom().nullItem();
                 } catch (Exception ex) {
                     ex.printStackTrace();
