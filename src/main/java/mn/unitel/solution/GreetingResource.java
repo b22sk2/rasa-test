@@ -1,6 +1,11 @@
 package mn.unitel.solution;
 
+import io.smallrye.mutiny.Uni;
+import mn.unitel.solution.Client.RasaClient;
+import org.eclipse.microprofile.rest.client.RestClientBuilder;
+
 import java.io.IOException;
+import java.net.URI;
 
 import javax.inject.Inject;
 import javax.ws.rs.*;
@@ -20,15 +25,23 @@ public class GreetingResource {
         return init.check(id);
         // return "Hello RESTEasy";
     }
+    Uni<String> send(DataStore dataStore) {
+        PageInfo info = init.pagesInfo.get(dataStore.recipientId);
+
+        return RestClientBuilder.newBuilder().baseUri(URI.create(info.url)).build(RasaClient.class).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
+
+
+
+
+    }
 
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     public String wait(String data,@HeaderParam("X-Hub-Signature") String sha1 , @HeaderParam("X-Hub-Signature-256") String sha2) throws IOException {
        DataStore dataStore = new DataStore(data,sha1,sha2);
-
-
-        init.push(dataStore);
+        Uni.createFrom().item(dataStore).onItem().call(x-> send(x)).subscribe().with(System.out::println);
+       // init.push(dataStore);
        
         return "success";
     }

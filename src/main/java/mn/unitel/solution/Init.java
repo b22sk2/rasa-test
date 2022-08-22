@@ -46,7 +46,7 @@ public class Init {
     OkHttpClient client;
     Pages pages;
     PageInfo info;
-    Map<String, PageInfo> pagesInfo;
+    public Map<String, PageInfo> pagesInfo;
 
     String sendMsg = "{\n  \"sender\": \"%s\",\n  \"message\": \"%s\",\n  \"metadata\": \"\"\n}";
     String handoverRequest = "{\n    \"recipient\": {\"id\": %s },\n    \"target_app_id\": \"371291917550\",\n    \"metadata\": \"Talk to an agent\"\n   }";
