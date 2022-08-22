@@ -40,7 +40,7 @@ public class GreetingResource {
     public String wait(String data, @HeaderParam("X-Hub-Signature") String sha1, @HeaderParam("X-Hub-Signature-256") String sha2) throws IOException {
         DataStore dataStore = new DataStore(data, sha1, sha2);
         if (init.getLoaded())
-            Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).subscribe().with(System.out::println);
+            Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
         // init.push(dataStore);
         else {
             System.out.println("not loaded");
