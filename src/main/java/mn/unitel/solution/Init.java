@@ -60,6 +60,31 @@ public class Init {
 
     String sendMsg = "{\n  \"sender\": \"%s\",\n  \"message\": \"%s\",\n  \"metadata\": \"\"\n}";
     String handoverRequest = "{\n    \"recipient\": {\"id\": %s },\n    \"target_app_id\": \"371291917550\",\n    \"metadata\": \"Talk to an agent\"\n   }";
+
+    /**
+        handover endpoint payload
+        "external_id": "123abc", // the message id
+        "message": "comment from customer",
+        "created_at": "2015-01-13T08:59:26Z",
+        author": {"external_id": "456", // the customer id
+                  "name": "Fred"} // customer name
+     **/
+    String switchboardHandoverRequest = "{\n" +
+            "  \"external_id\": %s, \n" +
+            "  \"message\": %s, \n" +
+            "  \"created_at\": %s, \n" +
+            "  \"author\": {\n" +
+            "    \"external_id\": %s, \n" +
+            "    \"name\": %s \n" +
+            "  }\n" +
+            "}\n";
+
+    String takeControlRequest = "{\n" +
+            "    \"recipient\": {\n" +
+            "        \"id\": %s\n" +
+            "    },\n" +
+            "    \"metadata\": \"Hi receiver2\"\n" +
+            "}";
      boolean loaded = false;
 
     void onStart(@Observes StartupEvent ev) {
