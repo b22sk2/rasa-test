@@ -62,11 +62,20 @@ public class GreetingResource {
     @POST
     @Path("takeControl")
     @Consumes(MediaType.APPLICATION_JSON)
-    public String takeControl(String data, @HeaderParam("X-Hub-Signature") String sha1, @HeaderParam("X-Hub-Signature-256") String sha2) {
+    public String takeControl(String data) {
+        String recipientId = null;
+        String metadata = null;
+
         try {
-            DataStore dataStore = new DataStore(data, sha1, sha2);
-            PageInfo info = init.pagesInfo.get(dataStore.getRecipientId());
-            takeControl.call(info.accessToken,String.format(init.takeControlRequest, dataStore.senderId));
+            JsonObject jObject = new JsonObject(data);
+            JsonObject recipient = jObject.getJsonArray("recipient").getJsonObject(0);
+            if(!recipient.isEmpty()){
+                recipientId = recipient.getString("id");
+            }
+            metadata = jObject.getString("metadata");
+            PageInfo info = init.pagesInfo.get(recipientId);
+
+            takeControl.call(info.accessToken,String.format(init.takeControlRequest, recipientId));
             logger.info("chatbot took control");
 
             return "success";
