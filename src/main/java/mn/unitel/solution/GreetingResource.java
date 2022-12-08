@@ -1,22 +1,22 @@
 package mn.unitel.solution;
 
+import io.quarkus.redis.datasource.ReactiveRedisDataSource;
+import io.quarkus.redis.datasource.hash.ReactiveHashCommands;
 import io.smallrye.mutiny.Uni;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import mn.unitel.solution.Client.RasaClient;
+import mn.unitel.solution.Switchboard.RedisService;
 import mn.unitel.solution.Switchboard.TakeControl;
 import mn.unitel.solution.Switchboard.ZendeskHandover;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import java.time.LocalDateTime;
-
 import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -38,16 +38,34 @@ public class GreetingResource {
 
     @ConfigProperty(name = "zendesk.token",defaultValue = "1")
     String token;
+    @ConfigProperty(name = "access.token",defaultValue = "1")
+    String accessToken;
+
+    @Inject
+    RedisService redisService;
 
     private static final Logger logger = Logger.getLogger("rasa");
 
 
+
     @GET
+    @Path("11")
     @Produces(MediaType.TEXT_PLAIN)
     public String hello(@QueryParam("id") String id) {
         return init.check(id);
         // return "Hello RESTEasy";
     }
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String hello1(@QueryParam("hub.mode")String mode, @QueryParam("hub.verify_token")String verifyToken,
+                         @QueryParam("hub.challenge")String challenge, String request) {
+        if(accessToken.equals(verifyToken)){
+            return challenge;
+        }
+        return "failed";
+    }
+
 
     Uni<String> send(DataStore dataStore) {
 
@@ -62,24 +80,32 @@ public class GreetingResource {
     @POST
     @Path("takeControl")
     @Consumes(MediaType.APPLICATION_JSON)
-    public String takeControl(String data) {
+    public String takeControl(@QueryParam("access_token")String zendeskAccessToken,String data) {
+        if(!accessToken.equals(zendeskAccessToken)){
+            return "failed";
+        }
         String recipientId = null;
         String metadata = null;
-
         try {
             JsonObject jObject = new JsonObject(data);
-            JsonObject recipient = jObject.getJsonArray("recipient").getJsonObject(0);
-            if(!recipient.isEmpty()){
-                recipientId = recipient.getString("id");
-            }
-            metadata = jObject.getString("metadata");
-            PageInfo info = init.pagesInfo.get(recipientId);
+            recipientId = jObject.getJsonObject("recipient").getString("id");
+            PageInfo info = init.getPagesInfo().get(recipientId);
 
-            takeControl.call(info.accessToken,String.format(init.takeControlRequest, recipientId));
-            logger.info("chatbot took control");
+
+            if(redisService.get(recipientId).equals("hand_over")){
+                redisService.del(recipientId);
+                System.out.println("Handover process over");
+                logger.info("chatbot took control");
+            }
+            else {
+                System.out.println("No handover in progress");
+            }
+//            takeControl.call(info.accessToken,String.format(init.takeControlRequest, recipientId));
+
+
 
             return "success";
-
+            
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
@@ -97,26 +123,46 @@ public class GreetingResource {
         DataStore dataStore = new DataStore(data, sha1, sha2);
         if (init.getLoaded()){
             try {
-                PageInfo info = init.pagesInfo.get(dataStore.getRecipientId());
-                //Request handover
-                if(info.operation.equals("1")){
-                    zendeskCall.call(info.accessToken,String.format(init.switchboardHandoverRequest,
-                            dataStore.senderId,dataStore.senderId, LocalDateTime.now(),dataStore.senderId,dataStore.senderId));
-                    Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
-                    logger.info("called handoverAPI & rasaClient");
+                PageInfo info = init.getPagesInfo().get(dataStore.getRecipientId());
+                String postback = null;
+                JsonObject jsonObject = new JsonObject(dataStore.getValue());
+                JsonObject payload = jsonObject.getJsonArray("entry").getJsonObject(0)
+                        .getJsonArray("messaging").getJsonObject(0);
+                if(payload.getJsonObject("postback") != null){
+                    postback = payload.getJsonObject("postback").getString("payload");
+                }
+
+                if(redisService.get(dataStore.senderId) != null){
+                    System.out.println("Handover sent");
                 }
                 else {
-                    Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+                    //Human handover
+                    if (postback != null) {
+                        if (postback.equals("/human_handover")) {
+                            //Store the userId & page id
+                            redisService.set(dataStore.getSenderId(), "hand_over");
+//                        zendeskCall.call(accessToken,info.id,String.format(init.switchboardHandoverRequest,
+//                                dataStore.getRecipientId(),"/human_handover", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
+//                        Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+                            logger.info("called handoverAPI & rasaClient");
+                        }
+                    } else {
+
+//                    Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+                    System.out.println("rasa msg");
+                    }
                 }
+
             } catch (Exception e) {
                 StringWriter sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw);
                 e.printStackTrace(pw);
                 String sStackTrace = sw.toString();
                 logger.errorv(sStackTrace);
+                return "failed";
             }
-        }
 
+        }
         // init.push(dataStore);
         else {
             System.out.println("not loaded");

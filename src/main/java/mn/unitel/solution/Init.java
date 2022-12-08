@@ -70,12 +70,12 @@ public class Init {
                   "name": "Fred"} // customer name
      **/
     String switchboardHandoverRequest = "{\n" +
-            "  \"external_id\": %s, \n" +
-            "  \"message\": %s, \n" +
-            "  \"created_at\": %s, \n" +
+            "  \"external_id\": \"%s\", \n" +
+            "  \"message\": \"%s\", \n" +
+            "  \"created_at\": \"%s\", \n" +
             "  \"author\": {\n" +
-            "    \"external_id\": %s, \n" +
-            "    \"name\": %s \n" +
+            "    \"external_id\": \"%s\", \n" +
+            "    \"name\": \"%s\" \n" +
             "  }\n" +
             "}\n";
 
@@ -85,6 +85,17 @@ public class Init {
             "    },\n" +
             "    \"metadata\": \"Hi receiver2\"\n" +
             "}";
+    public String messageRequest = "{\n" +
+            "    \"messaging_type\": \"RESPONSE\", \n" +
+            "    \"recipient\": {\n" +
+            "        \"id\": \"%s\" \n" +
+            "    },\n" +
+            "   \"message\": { \n" +
+            "       \"text\": \"%s\" \n" +
+            "   } \n"+
+            "}";
+
+
      boolean loaded = false;
 
     void onStart(@Observes StartupEvent ev) {
@@ -128,7 +139,7 @@ public class Init {
             httpClients = new HashMap<>();
             que.getPage().forEach(x -> {
                 pagesInfo.put(x.id, x);
-                System.out.println(x);
+//                System.out.println(x);
                 try {
 
                     httpClients.put(x.id, RestClientBuilder.newBuilder().baseUri(URI.create(x.url)).build(RasaClient.class));
@@ -206,6 +217,14 @@ public class Init {
 
         return pagesInfo.get(id).getMaintenanceMode();
 
+    }
+
+    public String getPageToken(String id){
+        PageInfo info = pagesInfo.get(id);
+        if(info == null){
+            return null;
+        }
+        return info.getAccessToken();
     }
 
 

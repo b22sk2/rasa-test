@@ -68,6 +68,19 @@
             <artifactId>gax</artifactId>
             <version>2.16.0</version>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-redis-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.smallrye</groupId>-->
+<!--            <artifactId>smallrye-health</artifactId>-->
+<!--            <version>2.2.3</version>-->
+<!--        </dependency>-->
     </dependencies>
     <build>
         <plugins>
