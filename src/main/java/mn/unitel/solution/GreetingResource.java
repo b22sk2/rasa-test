@@ -16,7 +16,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -36,8 +38,6 @@ public class GreetingResource {
     @RestClient
     TakeControl takeControl;
 
-    @ConfigProperty(name = "zendesk.token",defaultValue = "1")
-    String token;
     @ConfigProperty(name = "access.token",defaultValue = "1")
     String accessToken;
 
@@ -80,7 +80,8 @@ public class GreetingResource {
     @POST
     @Path("takeControl")
     @Consumes(MediaType.APPLICATION_JSON)
-    public String takeControl(@QueryParam("access_token")String zendeskAccessToken,String data) {
+    public String takeControl(@QueryParam("access_token")String zendeskAccessToken,
+                              @QueryParam("pageId")String pageId,String data) {
         if(!accessToken.equals(zendeskAccessToken)){
             return "failed";
         }
@@ -92,8 +93,8 @@ public class GreetingResource {
             PageInfo info = init.getPagesInfo().get(recipientId);
 
 
-            if(redisService.get(recipientId).equals("hand_over")){
-                redisService.del(recipientId);
+            if(redisService.get(recipientId.concat(".").concat(pageId)) != null){
+                redisService.del(recipientId.concat(".").concat(pageId));
                 System.out.println("Handover process over");
                 logger.info("chatbot took control");
             }
@@ -128,22 +129,30 @@ public class GreetingResource {
                 JsonObject jsonObject = new JsonObject(dataStore.getValue());
                 JsonObject payload = jsonObject.getJsonArray("entry").getJsonObject(0)
                         .getJsonArray("messaging").getJsonObject(0);
+
                 if(payload.getJsonObject("postback") != null){
                     postback = payload.getJsonObject("postback").getString("payload");
                 }
 
-                if(redisService.get(dataStore.senderId) != null){
-                    System.out.println("Handover sent");
+                //redirect msg to zendesk
+                if(redisService.get(dataStore.getSenderId().concat(".").concat(dataStore.recipientId)) != null){
+                    String msg = payload.getJsonObject("message").getString("text");
+                    System.out.println(String.format(init.switchboardHandoverRequest,
+                            dataStore.getRecipientId(),msg, LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
+//                    zendeskCall.call(accessToken,info.id,String.format(init.switchboardHandoverRequest,
+//                            dataStore.getRecipientId(),msg, LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
+                    System.out.println("Msg sent to operator");
                 }
                 else {
                     //Human handover
                     if (postback != null) {
                         if (postback.equals("/human_handover")) {
                             //Store the userId & page id
-                            redisService.set(dataStore.getSenderId(), "hand_over");
+                            redisService.set(dataStore.getSenderId().concat(".").concat(dataStore.recipientId), "hand_over");
+                            System.out.println(String.format(init.switchboardHandoverRequest,
+                                    dataStore.getRecipientId(),"handover", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
 //                        zendeskCall.call(accessToken,info.id,String.format(init.switchboardHandoverRequest,
-//                                dataStore.getRecipientId(),"/human_handover", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
-//                        Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+//                                dataStore.getRecipientId(),"handover", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
                             logger.info("called handoverAPI & rasaClient");
                         }
                     } else {

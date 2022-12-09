@@ -13,8 +13,9 @@ public class RedisService {
         commands = ds.string(String.class);
     }
 
+    //save key for 24hrs
     public void set(String key, String value) {
-        commands.set(key, value);
+        commands.setex(key,86400,value);
     }
 
     public String get(String key) {

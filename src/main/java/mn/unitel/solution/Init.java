@@ -69,7 +69,7 @@ public class Init {
         author": {"external_id": "456", // the customer id
                   "name": "Fred"} // customer name
      **/
-    String switchboardHandoverRequest = "{\n" +
+    String switchboardHandoverRequest = "{ \n" +
             "  \"external_id\": \"%s\", \n" +
             "  \"message\": \"%s\", \n" +
             "  \"created_at\": \"%s\", \n" +
