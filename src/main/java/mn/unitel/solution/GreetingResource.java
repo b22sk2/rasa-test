@@ -95,7 +95,6 @@ public class GreetingResource {
 
             if(redisService.get(recipientId.concat(".").concat(pageId)) != null){
                 redisService.del(recipientId.concat(".").concat(pageId));
-                System.out.println("Handover process over");
                 logger.info("chatbot took control");
             }
             else {
@@ -122,59 +121,90 @@ public class GreetingResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public String wait(String data, @HeaderParam("X-Hub-Signature") String sha1, @HeaderParam("X-Hub-Signature-256") String sha2) throws IOException {
         DataStore dataStore = new DataStore(data, sha1, sha2);
-        if (init.getLoaded()){
-            try {
-                PageInfo info = init.getPagesInfo().get(dataStore.getRecipientId());
-                String postback = null;
-                JsonObject jsonObject = new JsonObject(dataStore.getValue());
-                JsonObject payload = jsonObject.getJsonArray("entry").getJsonObject(0)
-                        .getJsonArray("messaging").getJsonObject(0);
+        if (!init.getLoaded()){
+            System.out.println("not loaded");
+            return "failed";
+        }
+        try {
+            PageInfo info = init.getPagesInfo().get(dataStore.getRecipientId());
+            String postback = null;
+            JsonObject jsonObject = new JsonObject(dataStore.getValue());
+            JsonObject payload = jsonObject.getJsonArray("entry").getJsonObject(0)
+                    .getJsonArray("messaging").getJsonObject(0);
 
-                if(payload.getJsonObject("postback") != null){
-                    postback = payload.getJsonObject("postback").getString("payload");
-                }
+            if(payload.getJsonObject("postback") != null){
+                postback = payload.getJsonObject("postback").getString("payload");
+            }
 
-                //redirect msg to zendesk
-                if(redisService.get(dataStore.getSenderId().concat(".").concat(dataStore.recipientId)) != null){
-                    String msg = payload.getJsonObject("message").getString("text");
-                    System.out.println(String.format(init.switchboardHandoverRequest,
-                            dataStore.getRecipientId(),msg, LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
+            //redirect msg to zendesk
+            if(redisService.get(dataStore.getSenderId().concat(".").concat(dataStore.recipientId)) != null){
+                String msg = payload.getJsonObject("message").getString("text");
+//                System.out.println(String.format(init.switchboardHandoverRequest,
+//                        dataStore.getRecipientId(),msg, LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
 //                    zendeskCall.call(accessToken,info.id,String.format(init.switchboardHandoverRequest,
 //                            dataStore.getRecipientId(),msg, LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
-                    System.out.println("Msg sent to operator");
+                System.out.println("Msg sent to operator");
+            }
+            else {
+                if(postback == null){
+//                        Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+                    System.out.println("rasa msg");
                 }
                 else {
                     //Human handover
-                    if (postback != null) {
-                        if (postback.equals("/human_handover")) {
-                            //Store the userId & page id
-                            redisService.set(dataStore.getSenderId().concat(".").concat(dataStore.recipientId), "hand_over");
-                            System.out.println(String.format(init.switchboardHandoverRequest,
-                                    dataStore.getRecipientId(),"handover", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
+                    if (postback.equals("/human_handover")) {
+                        redisService.set(dataStore.getSenderId().concat(".").concat(dataStore.recipientId), "hand_over");
+//                        System.out.println(String.format(init.switchboardHandoverRequest,
+//                                dataStore.getRecipientId(),"handover", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
 //                        zendeskCall.call(accessToken,info.id,String.format(init.switchboardHandoverRequest,
 //                                dataStore.getRecipientId(),"handover", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
-                            logger.info("called handoverAPI & rasaClient");
-                        }
-                    } else {
-
-//                    Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
-                    System.out.println("rasa msg");
+                        logger.info("called handoverAPI & rasaClient");
                     }
                 }
-
-            } catch (Exception e) {
-                StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                e.printStackTrace(pw);
-                String sStackTrace = sw.toString();
-                logger.errorv(sStackTrace);
-                return "failed";
+                // init.push(dataStore);
             }
 
+        } catch (Exception e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            String sStackTrace = sw.toString();
+            logger.errorv(sStackTrace);
+            return "failed";
         }
-        // init.push(dataStore);
-        else {
-            System.out.println("not loaded");
+        return "success";
+    }
+
+    @POST
+    @Path("passtojava")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public String process(@QueryParam("access_token")String token,String data) throws IOException {
+        if(!accessToken.equals(token))
+            return "failed";
+
+        try {
+            JsonObject jsonObject = new JsonObject(data);
+            String senderId = jsonObject.getString("sender");
+            String recipientId = jsonObject.getJsonObject("recipient").getString("id");
+            String metadata = jsonObject.getString("metadata");
+
+
+
+            redisService.set(senderId.concat(".").concat(recipientId), "hand_over");
+            System.out.println(String.format(init.switchboardHandoverRequest,
+                    recipientId,metadata, LocalDateTime.now(),senderId,senderId));
+//            zendeskCall.call(accessToken,recipientId,String.format(init.switchboardHandoverRequest,
+//                    recipientId,metadata, LocalDateTime.now(),senderId,senderId));
+            logger.info("called handoverAPI & rasaClient");
+
+
+        } catch (Exception e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            String sStackTrace = sw.toString();
+            logger.errorv(sStackTrace);
+            return "failed";
         }
 
         return "success";
