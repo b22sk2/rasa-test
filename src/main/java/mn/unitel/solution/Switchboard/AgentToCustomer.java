@@ -46,8 +46,6 @@ public class AgentToCustomer {
             JsonObject jsonObject = new JsonObject(data);
             String recipientId = jsonObject.getJsonObject("recipient").getString("id");
             String message = jsonObject.getJsonObject("message").getString("text");
-//            System.out.println("page id = "+init.getPageToken(pageId));
-//            System.out.println(String.format(init.messageRequest,recipientId,message));
             messageCustomer.call(init.getPageToken(pageId),String.format(init.messageRequest,recipientId,message));
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
