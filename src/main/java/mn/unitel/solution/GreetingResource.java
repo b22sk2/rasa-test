@@ -178,7 +178,7 @@ public class GreetingResource {
     @POST
     @Path("passtojava")
     @Consumes(MediaType.APPLICATION_JSON)
-    public String process(@QueryParam("access_token")String token,String data) {
+    public String process(@QueryParam("access_token")String token,String data) throws IOException {
         if(!accessToken.equals(token))
             return "failed";
 
