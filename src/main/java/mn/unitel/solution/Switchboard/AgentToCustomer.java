@@ -11,6 +11,7 @@ import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -18,6 +19,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URI;
 
 
 @Path("switchboard")
@@ -29,24 +31,33 @@ public class AgentToCustomer {
     @ConfigProperty(name = "access.token",defaultValue = "1")
     String accessToken;
 
-    @Inject
-    @RestClient
-    MessageCustomer messageCustomer;
 
+    public Uni<String> send(JsonObject jsonPayload) {
 
+        return RestClientBuilder.newBuilder().baseUri(URI.create("https://graph.facebook.com/v15.0/me/messages"))
+                .build(MessageCustomer.class).call(jsonPayload.getString("pageToken"),jsonPayload.getString("payload"));
+    }
 
     @POST
     @Path("message")
     public String agentSend(@QueryParam("access_token")String zendeskAccessToken,
                             @QueryParam("pageId")String pageId, String data){
-        if(!accessToken.equals(zendeskAccessToken))
+        if(!accessToken.equals(zendeskAccessToken)){
             return "failed";
-
+        }
         try {
             JsonObject jsonObject = new JsonObject(data);
             String recipientId = jsonObject.getJsonObject("recipient").getString("id");
             String message = jsonObject.getJsonObject("message").getString("text");
-            messageCustomer.call(init.getPageToken(pageId),String.format(init.messageRequest,recipientId,message));
+            String pageToken = init.getPageToken(pageId);
+            String payload = String.format(init.messageRequest,recipientId,message);
+
+            JsonObject jsonPayload = new JsonObject();
+            jsonPayload.put("pageToken",pageToken);
+            jsonPayload.put("payload",payload);
+
+            Uni.createFrom().item(jsonPayload).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+//            messageCustomer.call(init.getPageToken(pageId),String.format(init.messageRequest,recipientId,message));
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);

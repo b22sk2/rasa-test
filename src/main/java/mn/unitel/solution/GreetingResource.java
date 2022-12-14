@@ -1,24 +1,19 @@
 package mn.unitel.solution;
 
-import io.quarkus.redis.datasource.ReactiveRedisDataSource;
-import io.quarkus.redis.datasource.hash.ReactiveHashCommands;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.json.JsonObject;
 import mn.unitel.solution.Client.RasaClient;
+import mn.unitel.solution.Switchboard.MessageCustomer;
 import mn.unitel.solution.Switchboard.RedisService;
-import mn.unitel.solution.Switchboard.TakeControl;
 import mn.unitel.solution.Switchboard.ZendeskHandover;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
-import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -30,13 +25,6 @@ public class GreetingResource {
     @Inject
     Init init;
 
-    @Inject
-    @RestClient
-    ZendeskHandover zendeskCall;
-
-    @Inject
-    @RestClient
-    TakeControl takeControl;
 
     @ConfigProperty(name = "access.token",defaultValue = "1")
     String accessToken;
@@ -48,18 +36,18 @@ public class GreetingResource {
 
 
 
-    @GET
-    @Path("11")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String hello(@QueryParam("id") String id) {
-        return init.check(id);
-        // return "Hello RESTEasy";
-    }
+//    @GET
+//    @Path("11")
+//    @Produces(MediaType.TEXT_PLAIN)
+//    public String hello(@QueryParam("id") String id) {
+//        return init.check(id);
+//        // return "Hello RESTEasy";
+//    }
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    public String hello1(@QueryParam("hub.mode")String mode, @QueryParam("hub.verify_token")String verifyToken,
-                         @QueryParam("hub.challenge")String challenge, String request) {
+    public String webhookVerify(@QueryParam("hub.mode")String mode, @QueryParam("hub.verify_token")String verifyToken,
+                                @QueryParam("hub.challenge")String challenge, String request) {
         if(accessToken.equals(verifyToken)){
             return challenge;
         }
@@ -67,14 +55,7 @@ public class GreetingResource {
     }
 
 
-    Uni<String> send(DataStore dataStore) {
 
-        PageInfo info = init.getPagesInfo().get(dataStore.recipientId);
-
-        return RestClientBuilder.newBuilder().baseUri(URI.create(info.url)).build(RasaClient.class).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
-
-
-    }
 
 
     @POST
@@ -100,9 +81,6 @@ public class GreetingResource {
             else {
                 System.out.println("No handover in progress");
             }
-//            takeControl.call(info.accessToken,String.format(init.takeControlRequest, recipientId));
-
-
 
             return "success";
             
@@ -139,25 +117,38 @@ public class GreetingResource {
             //redirect msg to zendesk
             if(redisService.get(dataStore.getSenderId().concat(".").concat(dataStore.recipientId)) != null){
                 String msg = payload.getJsonObject("message").getString("text");
-//                System.out.println(String.format(init.switchboardHandoverRequest,
-//                        dataStore.getRecipientId(),msg, LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
-//                    zendeskCall.call(accessToken,info.id,String.format(init.switchboardHandoverRequest,
-//                            dataStore.getRecipientId(),msg, LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
+
+                JsonObject jsonPayload = new JsonObject();
+                jsonPayload.put("token",init.getPageToken(info.getId()));
+                jsonPayload.put("pageId",info.getId());
+                jsonPayload.put("payload",String.format(init.switchboardHandoverRequest,
+                        dataStore.getRecipientId(),msg, LocalDateTime.now(),dataStore.getSenderId(),dataStore.getSenderId()));
+
+                Uni.createFrom().item(jsonPayload).onItem().call(x -> zendeskCall(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+
                 System.out.println("Msg sent to operator");
             }
             else {
+                //sending msg to rasa
                 if(postback == null){
-//                        Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+                    Uni.createFrom().item(dataStore).onItem().call(x -> send(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
                     System.out.println("rasa msg");
                 }
                 else {
-                    //Human handover
+                    //Human handover --> from persistent menu
                     if (postback.equals("/human_handover")) {
+                        //store 'userId.pageId'
                         redisService.set(dataStore.getSenderId().concat(".").concat(dataStore.recipientId), "hand_over");
-//                        System.out.println(String.format(init.switchboardHandoverRequest,
-//                                dataStore.getRecipientId(),"handover", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
-//                        zendeskCall.call(accessToken,info.id,String.format(init.switchboardHandoverRequest,
-//                                dataStore.getRecipientId(),"handover", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
+
+                        JsonObject jsonPayload = new JsonObject();
+                        jsonPayload.put("token",accessToken);
+                        jsonPayload.put("pageId",info.getId());
+                        jsonPayload.put("payload",String.format(init.switchboardHandoverRequest,
+                                dataStore.getRecipientId(),"hand_over", LocalDateTime.now(),dataStore.getSenderId(),dataStore.senderId));
+                        Uni.createFrom().item(jsonPayload).onItem().call(x -> zendeskCall(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+
+                        //Send confirmation msg to customer
+                        sendConfirmationToCustomer(init.getPageToken(info.getId()), dataStore.senderId);
                         logger.info("called handoverAPI & rasaClient");
                     }
                 }
@@ -175,28 +166,31 @@ public class GreetingResource {
         return "success";
     }
 
+    //Rasa human_handover intent calls this
     @POST
     @Path("passtojava")
     @Consumes(MediaType.APPLICATION_JSON)
-    public String process(@QueryParam("access_token")String token,String data) throws IOException {
+    public String process(@QueryParam("access_token")String token,String data) {
         if(!accessToken.equals(token))
             return "failed";
 
         try {
+            //Human handover --> from rasa
             JsonObject jsonObject = new JsonObject(data);
             String senderId = jsonObject.getString("sender");
             String recipientId = jsonObject.getJsonObject("recipient").getString("id");
-            String metadata = jsonObject.getString("metadata");
-
-
-
+            JsonObject metadata = jsonObject.getJsonObject("metadata");
             redisService.set(senderId.concat(".").concat(recipientId), "hand_over");
-            System.out.println(String.format(init.switchboardHandoverRequest,
-                    recipientId,metadata, LocalDateTime.now(),senderId,senderId));
-//            zendeskCall.call(accessToken,recipientId,String.format(init.switchboardHandoverRequest,
-//                    recipientId,metadata, LocalDateTime.now(),senderId,senderId));
-            logger.info("called handoverAPI & rasaClient");
+            PageInfo info = init.getPagesInfo().get(recipientId);
 
+            JsonObject jsonPayload = new JsonObject();
+            jsonPayload.put("token",accessToken);
+            jsonPayload.put("pageId",info.getId());
+            jsonPayload.put("payload",String.format(init.switchboardHandoverRequest,
+                    metadata.getString("message_id"),metadata.getString("text"), LocalDateTime.now(),senderId,senderId));
+
+            Uni.createFrom().item(jsonPayload).onItem().call(x -> zendeskCall(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
+            logger.info("called handoverAPI & rasaClient");
 
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
@@ -206,6 +200,41 @@ public class GreetingResource {
             logger.errorv(sStackTrace);
             return "failed";
         }
+
+        return "success";
+    }
+
+
+
+    Uni<String> send(DataStore dataStore) {
+
+        PageInfo info = init.getPagesInfo().get(dataStore.recipientId);
+
+        return RestClientBuilder.newBuilder().baseUri(URI.create(info.url)).build(RasaClient.class).send(dataStore.getValue(), dataStore.sha1, dataStore.sha256);
+
+    }
+    //sending payload to zendesk (user msg)
+    Uni<String> zendeskCall(JsonObject jsonPayload) {
+        return RestClientBuilder.newBuilder().baseUri(URI.create("https://81bc-202-70-46-20.jp.ngrok.io/zendesk"))
+                .build(ZendeskHandover.class).call(jsonPayload.getString("token"),
+                        jsonPayload.getString("pageId"),jsonPayload.getString("payload"));
+    }
+    public Uni<String> sendToCustomer(JsonObject jsonPayload) {
+
+        return RestClientBuilder.newBuilder().baseUri(URI.create("https://graph.facebook.com/v15.0/me/messages"))
+                .build(MessageCustomer.class).call(jsonPayload.getString("pageToken"),jsonPayload.getString("payload"));
+    }
+    public String sendConfirmationToCustomer(String token, String recipientId){
+        String payload = String.format(init.messageRequest,recipientId,
+                "За, таныг ажилтан руу шилжүүллээ. Ажилтан тун удахгүй хариу өгөх тул та түр хүлээгээрэй 🙂");
+
+        JsonObject jsonPayload = new JsonObject();
+        jsonPayload.put("pageToken",token);
+        jsonPayload.put("payload",payload);
+        System.out.println(jsonPayload);
+
+
+        Uni.createFrom().item(jsonPayload).onItem().call(x -> sendToCustomer(x)).onFailure().recoverWithNull().subscribe().with(System.out::println);
 
         return "success";
     }

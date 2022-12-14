@@ -38,7 +38,7 @@ public class PageInfo {
     @XmlElement(name = "operation")
     String operation;
     @XmlElement(name = "url")
-    String url;
+    public String url;
 
     public void setMaintenanceText(String maintenanceText) {
         this.maintenanceText = maintenanceText;

@@ -1,5 +1,6 @@
 package mn.unitel.solution.Switchboard;
 
+import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 import javax.ws.rs.POST;
@@ -11,5 +12,5 @@ import javax.ws.rs.core.MediaType;
 public interface MessageCustomer {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
-    String call(@QueryParam("access_token") String token, String request);
+    public Uni<String> call(@QueryParam("access_token") String token, String request);
 }
